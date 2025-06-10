@@ -1,0 +1,126 @@
+---
+title: "PRACTICA: Proyecto de Visualización"
+author: "Leonor Pallares"
+date: "Junio 2025"
+output:
+  #pdf_document: default
+   html_document: default
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+------------------------------------------------------------------------
+** Generacion de subconjuntos de datos: Tableau
+------------------------------------------------------------------------
+
+```{r, warning=FALSE}
+# Instalar y cargar los paquetes necesarios para generar los datos
+
+#install.packages("readr")  
+library(readr)
+
+#install.packages("tidyr")  
+library(tidyr)
+
+#install.packages("dplyr")  
+library(dplyr)
+
+#install.packages("dtplyr")
+library(dtplyr)
+
+# Cargar librería para convertir códigos de país
+#install.packages("countrycode")
+library(countrycode)
+
+```
+
+
+Leer fichero de entrada.
+```{r load data, warning=FALSE}
+
+# Leer el archivo CSV original
+df  <- read.csv("owid-co2-data.csv")
+dim(df)
+
+```
+
+
+## 01: Obtencion fichero principal: co2_tableau_1990_con_regiones.csv
+Este fichero tendra la informacion filtrada desde, el año 1990 en adelante (más relevantes y comparables) y tiene regiones agregadascomo World, Asia, Europe, etc 
+
+```{r, warning=FALSE}
+# 01: co2_tableau_1990_con_regiones.csv: Años 1990 en adelante y regiones agregadas
+
+# Seleccionamos las variables mas relevantes
+vars <- c(  "country", "iso_code", "year", 
+            "co2", "co2_per_capita","coal_co2", "oil_co2", "gas_co2", "cement_co2", "flaring_co2",
+            "gdp", "population", "primary_energy_consumption"
+          )
+
+# Filtramos los años desde 1990 e incluimos países y regiones
+df_filtrado <- df %>%
+  filter(year >= 1990) %>%
+  select(all_of(vars))
+
+# Guardar como nuevo archivo CSV: Utilizar en Tableau
+write_csv(df_filtrado, "co2_tableau_1990_con_regiones.csv")
+
+# Exportar en formato compatible con Tableau por , decimal en vez de punto
+write.csv2(df_filtrado, file = "co2_tableau_1990_con_regiones_cd.csv", row.names = FALSE)
+
+
+```
+
+
+## 02: Obtencion del fichero pivotado: co2_tableau_1990_con_regisones_cd_pivotado.csv.
+A partir del fichero anterior co2_tableau_1990_con_regiones.csv, generaremos otro pivotando las variables de emision coal_co2, oil_co2, gas_co2, cement_co2, flaring_co2  -> co2_tableau_1990_con_regisones_cd_pivotado.csv.
+
+```{r, warning=FALSE}
+
+# Cargar librerías necesarias
+library(tidyverse)
+
+# Leer el archivo CSV previamente generado
+df <- read_csv("co2_tableau_1990_con_regiones.csv")
+
+# Pivotar columnas de emisiones a formato largo
+df_pivot <- df %>%
+  pivot_longer(
+    cols = c(coal_co2, oil_co2, gas_co2, cement_co2, flaring_co2),
+    names_to = "tipo_emision",
+    values_to = "valor_emision"
+  )
+
+# Guardar como nuevo archivo CSV
+write_csv(df_pivot, "co2_tableau_1990_con_regiones_pivotado.csv")
+
+
+# Exportar en formato compatible con Tableau por , decimal en vez de punto
+write.csv2(df_pivot, file = "co2_tableau_1990_con_regiones_pivotado_cd.csv", row.names = FALSE)
+
+```
+
+
+## 03: Obtencion del fichero: pib_vs_co2_tableau_1990.csv
+A partir del fichero inicial co2_tableau_1990_con_regiones.csv, obtendremos el fichero para calcular el pib/gdh, necesario para tableau  pib_vs_co2_tableau_1990.csv.
+
+```{r, warning=FALSE}
+# Leer el CSV con separador de punto y coma
+df3 <- read_delim("co2_tableau_1990_con_regiones.csv")
+# Filtrar por el año 2019
+df4 <- df3 %>%
+  filter(year >= 1990) %>%
+  select(country, year, gdp, co2_per_capita) %>%
+  filter(!is.na(gdp), !is.na(co2_per_capita))
+
+# Guardar el nuevo archivo CSV limpio para Tableau
+write_csv(df4, "pib_vs_co2_tableau_1990.csv")
+
+# Exportar en formato compatible con Tableau por , decimal en vez de punto
+write.csv2(df4, file = "pib_vs_co2_tableau_1990_cd.csv", row.names = FALSE)
+```
+
